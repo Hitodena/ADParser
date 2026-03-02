@@ -5,7 +5,14 @@ AutoDealer service catalog parser.
 ## Install
 
 ```bash
+# Install uv (Linux/macOS)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install dependencies
 uv sync
+
+# Install Playwright browsers
+uv run playwright install chromium
 ```
 
 ## Usage
