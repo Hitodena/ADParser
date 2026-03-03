@@ -16,7 +16,7 @@ async def run_parser(
     username: str,
     password: str,
     output_path: str,
-    headless: bool = True,
+    headless: bool,
 ) -> None:
     """Run the AutoDealer parser.
 

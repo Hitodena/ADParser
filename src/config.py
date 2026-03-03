@@ -12,6 +12,7 @@ SEARCH_API_URL = BASE_API + "/commonWorks/search"
 CURRENT_WORK_URL = BASE_API + "/commonWorks/{id}"
 
 CATALOG_WORKS_URL = "https://online.autodealer.ru/catalogs/works/"
+WAREHOUSES_URL = "https://online.autodealer.ru/catalogs/warehouses"
 
 
 # Folder configurations

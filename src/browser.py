@@ -14,7 +14,7 @@ from playwright.async_api import (
 class BrowserManager:
     """Browser manager for Playwright."""
 
-    def __init__(self, headless: bool = False) -> None:
+    def __init__(self, headless: bool = True) -> None:
         """Initialize BrowserManager.
 
         Args:
@@ -85,7 +85,7 @@ class BrowserManager:
         context_options = {
             "locale": "ru-RU",
             "timezone_id": "Europe/Moscow",
-            "viewport": {"width": 1920, "height": 1080},
+            "viewport": {"width": 1600, "height": 900},
             "extra_http_headers": {
                 "User-Agent": self._ua.random,
                 "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",

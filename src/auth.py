@@ -2,6 +2,7 @@
 
 import asyncio
 
+from loguru import logger
 from playwright.async_api import Page
 
 from .config import LOGIN_URL, TIMEOUT
@@ -25,6 +26,15 @@ async def login(page: Page, username: str, password: str) -> bool:
 
     await page.goto(login_url, wait_until="load", timeout=TIMEOUT * 1000)
 
+    frame = page.frame_locator("#carrot-frame-bumperCookies")
+    accept_cookie_btn = frame.get_by_role("button", name="Я согласен")
+    try:
+        logger.debug("Clicking accept cookie button")
+        await accept_cookie_btn.click(timeout=5000)
+        logger.debug("Cookie accepted")
+    except Exception:
+        logger.debug("Cookie button not found")
+
     username_locator = page.get_by_role("textbox", name="Email")
     password_locator = page.get_by_role("textbox", name="Пароль")
 
@@ -35,8 +45,9 @@ async def login(page: Page, username: str, password: str) -> bool:
     auth_button = page.get_by_text("Войти", exact=True).nth(3)
     await auth_button.click()
 
-    await asyncio.sleep(5)
+    logger.info("Waiting for redirect...")
     await page.wait_for_load_state("load", timeout=TIMEOUT * 1000)
+    await asyncio.sleep(10)
 
     current_url = page.url
     if "/auth" in current_url:
