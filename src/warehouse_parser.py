@@ -30,10 +30,14 @@ async def get_row_id(row) -> str:
     checkbox = row.locator("input[type='checkbox']")
     if await checkbox.count() > 0:
         return await checkbox.get_attribute("id") or ""
+    # Fallback: get from nomenclature column
+    name_elem = row.locator("app-nomenclature-column .name")
+    if await name_elem.count() > 0:
+        return await name_elem.get_attribute("title") or ""
     return ""
 
 
-async def get_row_details(page: Page) -> dict[str, Any]:
+async def get_row_details(page: Page, base_url: str) -> dict[str, Any]:
     """Extract data from the right-side detail panel after dblclick."""
     details: dict[str, Any] = {}
 
@@ -65,18 +69,19 @@ async def get_row_details(page: Page) -> dict[str, Any]:
 
         mfr_num = panel.locator(".number--manufacturer").first
         details["manufacturer_number"] = (
-            (await mfr_num.inner_text()).strip()
-            if await mfr_num.count() > 0
-            else ""
+            (await mfr_num.inner_text()).strip() if await mfr_num.count() > 0 else ""
         )
 
-        details["selling_price"] = parse_price(
-            await label_first_span("Цена продажи")
-        )
-        details["purchase_price"] = parse_price(
-            await label_first_span("Цена прихода")
-        )
+        details["selling_price"] = parse_price(await label_first_span("Цена продажи"))
+        details["purchase_price"] = parse_price(await label_first_span("Цена прихода"))
         details["max_discount"] = await label_content("Максимальная скидка")
+
+        # Extract product URL from the title link
+        title_link = panel.locator(".title-name a").first
+        if await title_link.count() > 0:
+            href = await title_link.get_attribute("href")
+            if href:
+                details["url"] = base_url + href
 
     except Exception as exc:
         logger.warning(f"Failed to get row details: {exc}")
@@ -84,12 +89,16 @@ async def get_row_details(page: Page) -> dict[str, Any]:
     return details
 
 
-async def process_page(page: Page) -> list[dict[str, Any]]:
+async def process_page(page: Page, base_url: str) -> list[dict[str, Any]]:
     """Process all rows on current pagination page.
 
     Uses reactive scrolling: after processing all currently visible rows,
     scrolls only if needed to load more items. Tracks processed rows by
     checkbox ID to avoid duplicates.
+
+    Key insight: CDK virtual scroll renders ~20 items at a time (viewport height / row height).
+    With viewport ~767px and ~20 visible rows, each row is ~35-40px. We scroll by ~50px
+    to ensure we always get new items without skipping.
     """
     items = []
     processed_ids: set[str] = set()
@@ -112,9 +121,9 @@ async def process_page(page: Page) -> list[dict[str, Any]]:
 
     # Get viewport dimensions
     client_height = await viewport.evaluate("el => el.clientHeight")
-    scroll_step = int(
-        client_height * 0.5
-    )  # Smaller step for more controlled scrolling
+    # Calculate scroll step: one row height (~35-40px based on 20 items in ~767px viewport)
+    # Using 50px ensures we don't skip rows while allowing virtual scroll to recycle
+    scroll_step = 50
     logger.debug(
         f"Viewport height: {client_height}px, scroll_step={scroll_step}px, "
         f"items_per_page={items_per_page}"
@@ -153,13 +162,11 @@ async def process_page(page: Page) -> list[dict[str, Any]]:
                 await row.locator("app-nomenclature-column").dblclick()
                 await asyncio.sleep(2)
 
-                details = await get_row_details(page)
+                details = await get_row_details(page, base_url)
                 details["quantity"] = quantity
                 items.append(details)
 
-                logger.debug(
-                    f"Collected #{len(items)}: {details.get('name', '')[:40]}"
-                )
+                logger.debug(f"Collected #{len(items)}: {details.get('name', '')[:40]}")
 
             except Exception as exc:
                 logger.warning(f"Row failed ({row_id}): {exc}")
@@ -218,22 +225,23 @@ async def parse_warehouse(
     browser_manager = BrowserManager(headless=headless)
     await browser_manager.start()
 
+    # Get base URL from config
+    from .config import BASE_URL
+
     try:
         async with browser_manager.context() as page:
             logger.info("Logging in...")
             await login(page, username, password)
             logger.success("Login successful")
 
-            await page.goto(
-                WAREHOUSES_URL, wait_until="load", timeout=TIMEOUT * 1000
-            )
+            await page.goto(WAREHOUSES_URL, wait_until="load", timeout=TIMEOUT * 1000)
 
             all_items: list[dict[str, Any]] = []
             page_num = 1
 
             while True:
                 logger.info(f"Processing page {page_num}...")
-                page_items = await process_page(page)
+                page_items = await process_page(page, BASE_URL)
                 all_items.extend(page_items)
                 logger.success(
                     f"Page {page_num}: {len(page_items)} items "
@@ -276,6 +284,7 @@ async def run_warehouse_parser(
         "selling_price",
         "purchase_price",
         "max_discount",
+        "url",
     ]
 
     with open(output_path, "w", newline="", encoding="utf-8") as f:

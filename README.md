@@ -41,6 +41,20 @@ uv run python main.py -u <username> -p <password> -o output.csv -w
 # Parse warehouse only is NOT supported - use -w to run BOTH
 ```
 
+### CSV Server
+
+```bash
+# Start server to serve CSV files
+uv run -m src.server
+```
+
+Server will start at `http://localhost:8000`
+
+Available endpoints:
+
+- `/output` — Download output.csv
+- `/warehouse` — Download warehouse.csv
+
 ## Arguments
 
 | Argument | Short | Description | Default |
@@ -79,6 +93,7 @@ uv run python main.py -u <username> -p <password> -o output.csv -w
 - `selling_price` — Цена продажи
 - `purchase_price` — Цена прихода
 - `max_discount` — Максимальная скидка
+- `url` — Ссылка на товар
 
 ## Project Structure
 
@@ -87,12 +102,13 @@ uv run python main.py -u <username> -p <password> -o output.csv -w
 ├── main.py           # Entry point
 ├── src/
 │   ├── parser.py     # Orchestrator
-│   ├── client client
-│  .py     # API ├── auth.py       # Authentication
-│   ├── session.py    # Session capture
-│   ├── models.py     # Pydantic models
-│   ├── config.py     # Configuration
-│   ├── csv_writer.py # CSV writer
-│   └── browser.py    # BrowserManager
-└── output.csv        # Result
+│   ├── client.py    # API client
+│   ├── auth.py      # Authentication
+│   ├── session.py   # Session capture
+│   ├── models.py    # Pydantic models
+│   ├── config.py    # Configuration
+│   ├── csv_writer.py# CSV writer
+│   ├── browser.py   # BrowserManager
+│   └── server.py   # CSV HTTP server
+└── output.csv       # Result
 ```

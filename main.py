@@ -15,12 +15,8 @@ from src.warehouse_parser import run_warehouse_parser
 def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(description="AutoDealer Parser")
-    parser.add_argument(
-        "--username", "-u", required=True, help="Login username/email"
-    )
-    parser.add_argument(
-        "--password", "-p", required=True, help="Login password"
-    )
+    parser.add_argument("--username", "-u", required=True, help="Login username/email")
+    parser.add_argument("--password", "-p", required=True, help="Login password")
     parser.add_argument(
         "--output",
         "-o",
@@ -56,6 +52,17 @@ def main() -> None:
         action="store_true",
         help="Parse with headless",
     )
+    parser.add_argument(
+        "--server",
+        action="store_true",
+        help="Run CSV server only (no parsing)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for CSV server (default: 8000)",
+    )
 
     args = parser.parse_args()
 
@@ -65,7 +72,9 @@ def main() -> None:
         def job() -> None:
             logger.info(f"Scheduled run at {datetime.now()}")
             # Always run regular parser first
-            asyncio.run(run_parser(args.username, args.password, args.output, args.headless))
+            asyncio.run(
+                run_parser(args.username, args.password, args.output, args.headless)
+            )
             # Then run warehouse parser if requested
             if args.warehouse:
                 logger.info(
@@ -88,7 +97,9 @@ def main() -> None:
     else:
         logger.info(f"Starting parser with output: {args.output}")
         # Always run regular parser first
-        # asyncio.run(run_parser(args.username, args.password, args.output))
+        asyncio.run(
+            run_parser(args.username, args.password, args.output, args.headless)
+        )
         # Then run warehouse parser if requested
         if args.warehouse:
             logger.info(
