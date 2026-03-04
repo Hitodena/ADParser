@@ -27,13 +27,13 @@ def _serve_file(filename: str) -> FileResponse:
     )
 
 
-@app.get("/output")
+@app.get("/output.csv")
 async def serve_output():
     """Serve output.csv file."""
     return _serve_file("output.csv")
 
 
-@app.get("/warehouse")
+@app.get("/warehouse.csv")
 async def serve_warehouse():
     """Serve warehouse.csv file."""
     return _serve_file("warehouse.csv")

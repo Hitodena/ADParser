@@ -52,8 +52,8 @@ Server will start at `http://localhost:8000`
 
 Available endpoints:
 
-- `/output` — Download output.csv
-- `/warehouse` — Download warehouse.csv
+- `/output.csv` — Download output.csv
+- `/warehouse.csv` — Download warehouse.csv
 
 ## Arguments
 
