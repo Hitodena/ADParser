@@ -12,51 +12,42 @@ ENV_DIR="/etc/adparser"
 ENV_FILE="${ENV_DIR}/adparser.env"
 SYSTEMD_DIR="/etc/systemd/system"
 
+UV_PATH="$(command -v uv || true)"
+if [[ -z "${UV_PATH}" ]]; then
+  echo "uv не найден в PATH" >&2
+  exit 1
+fi
+
 echo "==> Проект: ${PROJECT_DIR}"
+echo "==> uv:     ${UV_PATH}"
 
 mkdir -p "${ENV_DIR}"
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   cp "${SCRIPT_DIR}/adparser.env.example" "${ENV_FILE}"
-  sed -i "s|^ADPARSER_PROJECT_DIR=.*|ADPARSER_PROJECT_DIR=${PROJECT_DIR}|" "${ENV_FILE}"
-
-  UV_PATH="$(command -v uv || true)"
-  if [[ -n "${UV_PATH}" ]]; then
-    sed -i "s|^ADPARSER_UV=.*|ADPARSER_UV=${UV_PATH}|" "${ENV_FILE}"
-  fi
-
   chmod 600 "${ENV_FILE}"
-  echo "==> Создан ${ENV_FILE} — заполните логин и пароль перед запуском."
+  echo "==> Создан ${ENV_FILE} — заполните логин и пароль."
 else
-  echo "==> ${ENV_FILE} уже существует, не перезаписываем."
+  echo "==> ${ENV_FILE} уже существует."
 fi
-
-chmod +x "${SCRIPT_DIR}/run-server.sh" "${SCRIPT_DIR}/run-scheduler.sh"
 
 install_unit() {
   local name="$1"
-  local src="${SCRIPT_DIR}/${name}"
-  local dst="${SYSTEMD_DIR}/${name}"
-
   sed \
     -e "s|@PROJECT_DIR@|${PROJECT_DIR}|g" \
-    -e "s|@DEPLOY_DIR@|${SCRIPT_DIR}|g" \
-    "${src}" > "${dst}"
-
-  echo "==> Установлен ${dst}"
+    -e "s|@UV@|${UV_PATH}|g" \
+    "${SCRIPT_DIR}/${name}" > "${SYSTEMD_DIR}/${name}"
+  echo "==> ${SYSTEMD_DIR}/${name}"
 }
 
 install_unit "adparser-server.service"
-install_unit "adparser-scheduler.service"
+install_unit "adparser.service"
 
 systemctl daemon-reload
-systemctl enable adparser-server.service adparser-scheduler.service
+systemctl enable adparser-server.service adparser.service
 
 echo
-echo "Готово. Дальше:"
-echo "  1. Отредактируйте ${ENV_FILE} (логин, пароль, пути)"
-echo "  2. В каталоге проекта: uv sync && uv run playwright install chromium"
-echo "  3. На сервере без GUI: sudo uv run playwright install-deps chromium"
-echo "  4. Запуск: sudo systemctl start adparser-server adparser-scheduler"
-echo "  5. Статус:  systemctl status adparser-server adparser-scheduler"
-echo "  6. Логи:    journalctl -u adparser-server -f"
+echo "Дальше:"
+echo "  1. sudo nano ${ENV_FILE}"
+echo "  2. cd ${PROJECT_DIR} && uv sync && uv run playwright install chromium"
+echo "  3. sudo systemctl start adparser-server adparser"

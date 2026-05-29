@@ -1,20 +1,14 @@
 [Unit]
 Description=AutoDealer Parser CSV HTTP server
-Documentation=file://@PROJECT_DIR@/README.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-EnvironmentFile=/etc/adparser/adparser.env
 WorkingDirectory=@PROJECT_DIR@
-ExecStart=@DEPLOY_DIR@/run-server.sh
+ExecStart=@UV@ run -m src.server
 Restart=always
 RestartSec=10
-
-# Раскомментируйте и укажите пользователя в adparser.env (ADPARSER_USER)
-# User=@USER@
-# Group=@USER@
 
 StandardOutput=journal
 StandardError=journal

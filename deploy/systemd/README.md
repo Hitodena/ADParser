@@ -1,70 +1,37 @@
 # Автозапуск через systemd
 
-После перезагрузки сервера поднимаются два сервиса:
+Два сервиса — те же команды, что в README:
 
-| Сервис | Назначение |
-|--------|------------|
-| `adparser-server` | HTTP-сервер CSV на порту 8000 (`/output.csv`, `/warehouse.csv`) |
-| `adparser-scheduler` | Ежедневный парсинг по расписанию (по умолчанию в 02:00) |
+| Сервис | Команда |
+|--------|---------|
+| `adparser-server` | `uv run -m src.server` |
+| `adparser` | `uv run python main.py -u … -p … -o output.csv --scheduled --time "02:00"` |
 
-Оба сервиса включены в автозагрузку (`WantedBy=multi-user.target`) и перезапускаются при падении.
+Парсер сам держит расписание через `--scheduled` (библиотека `schedule` в `main.py`).
 
-## Установка на Linux-сервере
+## Установка
 
 ```bash
-# 1. Клонировать/обновить проект, установить зависимости
-cd /opt/adparser   # или ваш путь
+cd /opt/adparser
 uv sync
 uv run playwright install chromium
-sudo uv run playwright install-deps chromium   # системные библиотеки для Chromium
+sudo uv run playwright install-deps chromium
 
-# 2. Установить unit-файлы systemd
 sudo bash deploy/systemd/install.sh
-
-# 3. Заполнить учётные данные
 sudo nano /etc/adparser/adparser.env
-
-# 4. Запустить
-sudo systemctl start adparser-server adparser-scheduler
+sudo systemctl start adparser-server adparser
 ```
+
+## Конфиг `/etc/adparser/adparser.env`
+
+- `ADPARSER_USERNAME` / `ADPARSER_PASSWORD` — логин AutoDealer
+- `ADPARSER_SCHEDULE_TIME` — время парсинга (`02:00` по умолчанию)
+- `ADPARSER_EXTRA_ARGS` — доп. флаги CLI, напр. `-w --headless`
 
 ## Управление
 
 ```bash
-# Статус
-systemctl status adparser-server adparser-scheduler
-
-# Перезапуск после изменения кода или .env
-sudo systemctl restart adparser-server adparser-scheduler
-
-# Логи
-journalctl -u adparser-server -f
-journalctl -u adparser-scheduler -f
-
-# Отключить автозапуск
-sudo systemctl disable adparser-server adparser-scheduler
-```
-
-## Конфигурация
-
-Файл `/etc/adparser/adparser.env` (шаблон: `adparser.env.example`):
-
-- `ADPARSER_USERNAME` / `ADPARSER_PASSWORD` — логин AutoDealer
-- `ADPARSER_SCHEDULE_TIME` — время ежедневного парсинга (`HH:MM`)
-- `ADPARSER_WAREHOUSE=1` — дополнительно парсить склад
-- `ADPARSER_PORT` — порт CSV-сервера (по умолчанию 8000)
-
-После правки `.env`:
-
-```bash
-sudo systemctl restart adparser-server adparser-scheduler
-```
-
-## Проверка после перезагрузки
-
-```bash
-sudo reboot
-# после входа:
-systemctl is-active adparser-server adparser-scheduler
-curl -I http://127.0.0.1:8000/output.csv
+systemctl status adparser-server adparser
+journalctl -u adparser -f
+sudo systemctl restart adparser-server adparser
 ```

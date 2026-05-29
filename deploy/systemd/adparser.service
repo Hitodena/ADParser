@@ -1,0 +1,19 @@
+[Unit]
+Description=AutoDealer Parser (scheduled)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@PROJECT_DIR@
+EnvironmentFile=/etc/adparser/adparser.env
+ExecStart=/bin/bash -c 'exec @UV@ run python main.py -u "$ADPARSER_USERNAME" -p "$ADPARSER_PASSWORD" -o output.csv --scheduled --time "${ADPARSER_SCHEDULE_TIME:-02:00}" ${ADPARSER_EXTRA_ARGS:-}'
+Restart=always
+RestartSec=30
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=adparser
+
+[Install]
+WantedBy=multi-user.target
