@@ -28,6 +28,7 @@ async def login(page: Page, username: str, password: str) -> bool:
 
     frame = page.frame_locator("#carrot-frame-bumperCookies")
     accept_cookie_btn = frame.get_by_role("button", name="Я согласен")
+
     try:
         logger.debug("Clicking accept cookie button")
         await accept_cookie_btn.click(timeout=5000)
@@ -48,6 +49,15 @@ async def login(page: Page, username: str, password: str) -> bool:
     logger.info("Waiting for redirect...")
     await page.wait_for_load_state("load", timeout=TIMEOUT * 1000)
     await asyncio.sleep(10)
+
+    share_opinion_locator = page.get_by_text(
+        "Пожалуйста, поделитесь своим мнением", exact=True
+    )
+    if await share_opinion_locator.is_visible():
+        await share_opinion_locator.click(timeout=5000)
+        logger.debug("Share opinion button clicked")
+    else:
+        logger.debug("Share opinion button not found")
 
     current_url = page.url
     if "/auth" in current_url:
